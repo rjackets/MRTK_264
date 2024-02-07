@@ -63,6 +63,8 @@ public class Myh264Player : MonoBehaviour
 
     public DebugLog debugLog;   // For debug logging
 
+    private Dictionary<int, h264Stream> h264Streams = new Dictionary<int, h264Stream>();
+
     void Start()
     {
         // Start network connection and receiving thread
@@ -72,6 +74,20 @@ public class Myh264Player : MonoBehaviour
         receiverThread.Start();
 
         debugLog.Log("Network receiver thread started");
+
+        // // Add a stream the the stream list
+        h264Stream stream = new h264Stream();
+        // Initialize the stream
+        int result = stream.Initialize(width, height);
+        // if success then add to the list
+        if (result == 0)
+        {
+             AddStream(0, stream);           // Start at index 0 so that it matches what is coming from host
+        }
+        else
+        {
+             Debug.LogError("Failed to initialize stream OBJECT");
+        }
 
         // Print out name of the dll
         debugLog.Log("Using DLL: " + DllName);
@@ -130,6 +146,11 @@ public class Myh264Player : MonoBehaviour
             client.Close();
             client = null;
         }
+    }
+
+    private void AddStream(int id, h264Stream stream)
+    {
+        h264Streams.Add(id, stream);
     }
 
     void NetworkReceiverThread()

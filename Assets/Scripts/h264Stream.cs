@@ -45,7 +45,7 @@ public class h264Stream : MonoBehaviour
     private Texture2D yPlaneTexture;
     private Texture2D uvPlaneTexture;
 
-    int Initialize(int width, int height)
+    public int Initialize(int width, int height)
     {
         m_width = width;
         m_height = height;
@@ -62,19 +62,21 @@ public class h264Stream : MonoBehaviour
 
         yPlaneTexture = new Texture2D(width, height, TextureFormat.R8, false);
         uvPlaneTexture = new Texture2D(width / 2, height / 2, TextureFormat.RG16, false); // Assuming width and height are even -- UV is half the size of Y
+
+        return 0;
     }    
 
-    void Release()
+    public void Release()
     {
         ReleaseDecoder();
     }
 
-    int GetWidth()
+    public int GetWidth()
     {
         return GetFrameWidth();     // Returns the width of the internal frame buffer
     }
 
-    int GetHeight()
+    public int GetHeight()
     {
         return GetFrameHeight();   // Returns the height of the internal frame buffer
     }
@@ -89,13 +91,13 @@ public class h264Stream : MonoBehaviour
         uvPlaneTexture = this.uvPlaneTexture;
     }
 
-    void SetWidthAndHeight(int width, int height)
+    public void SetWidthAndHeight(int width, int height)
     {
         m_width = width;
         m_height = height;
     }
 
-    int ProcessFrame(byte[] inData)
+    public int ProcessFrame(byte[] inData)
     {
         int submitResult = SubmitInputToDecoder(inData, inData.Length);
         if (submitResult != 0)  // Failed
@@ -111,16 +113,21 @@ public class h264Stream : MonoBehaviour
         if (getOutputResult)
         {
 
-            Debug.Log("Got output from decoder");
+            Debug.Log("Got output from decoder");            
 
             // Convert the output data to textures
             // yPlaneTexture.LoadRawTextureData(outputData);
             // yPlaneTexture.Apply();
 
             // uvPlaneTexture.LoadRawTextureData(outputData, m_width * m_height, outputData.Length - m_width * m_height);
-            // uvPlaneTexture.Apply();
+            // uvPlaneTexture.Apply();            
         }
-        
+        else
+        {
+            return -1;
+        }
+
+        return 0;
     }
 
 }
