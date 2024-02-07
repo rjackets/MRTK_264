@@ -12,7 +12,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 
-public class h264Stream 
+public class h264Stream : MonoBehaviour    
 {
     
     #if UNITY_EDITOR
@@ -51,6 +51,19 @@ public class h264Stream
     byte[] m_yPlane;
     byte[] m_uvPlane;
 
+    void Start()
+    {
+
+    }
+
+    void OnDestroy()
+    {
+        // Delete textures
+        yPlaneTexture = null;
+        uvPlaneTexture = null;
+
+        ReleaseDecoder();
+    }
 
     public int Initialize(int width, int height)
     {

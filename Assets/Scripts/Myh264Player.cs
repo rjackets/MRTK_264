@@ -63,7 +63,7 @@ public class Myh264Player : MonoBehaviour
         {
             // For some reason the decoder needs to be initialized here, even though we are not
             // using it and it is encapsulated into the h264Stream class
-            int hr = InitializeDecoder(width, height);
+           // int hr = InitializeDecoder(width, height);
             debugLog.Log("DLL load successful!");
         }
         catch (Exception ex)
@@ -225,6 +225,8 @@ public class Myh264Player : MonoBehaviour
             Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);  
         }        
 
+        return;
+
         // Get a pointer to the stream
         h264Stream h264Stream = h264Streams[id];                
 
@@ -252,19 +254,26 @@ public class Myh264Player : MonoBehaviour
 
     private void InitializeAndAddStream(int id, int width, int height)
     {
-        h264Stream stream = new h264Stream();
-
         MainThreadDispatcher.Enqueue(() =>
-        {
+        {          
             // Get the main thread dispatcher
+            // Create a GameObject based on the id and add the h264Stream script to it
+            GameObject go = new GameObject("h264Stream_" + id);
+            h264Stream stream = go.AddComponent<h264Stream>();
+
+            // Log that we have added the game object and the script
+            Debug.Log("Added h264Stream script to GameObject: " + go.name);
+
+            // Initialize the stream with the width and height
             stream.Initialize(width, height);
+
+            // Add the stream to the list
+            h264Streams.Add(id, stream);
 
             // Assign the textures to the quad
             AssignTexturesToQuad(stream);
 
-        });
-
-        h264Streams.Add(id, stream);
+        });        
     }
 
     void AssignTexturesToQuad(h264Stream stream)
