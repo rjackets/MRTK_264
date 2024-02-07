@@ -12,7 +12,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 
-public class h264Stream : MonoBehaviour
+public class h264Stream 
 {
     
     #if UNITY_EDITOR
@@ -112,9 +112,6 @@ public class h264Stream : MonoBehaviour
 
         if (getOutputResult)
         {
-
-            Debug.Log("Got output from decoder");            
-
             int ySize = m_width * m_height;
             int uvSize = outputData.Length - ySize;
 
@@ -122,14 +119,7 @@ public class h264Stream : MonoBehaviour
             byte[] uvPlane = new byte[uvSize];
 
             System.Buffer.BlockCopy(outputData, 0, yPlane, 0, ySize);
-            System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);     
-
-            // Convert the output data to textures
-            // yPlaneTexture.LoadRawTextureData(outputData);
-            // yPlaneTexture.Apply();
-
-            // uvPlaneTexture.LoadRawTextureData(outputData, m_width * m_height, outputData.Length - m_width * m_height);
-            // uvPlaneTexture.Apply();            
+            System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);               
         }
         else
         {

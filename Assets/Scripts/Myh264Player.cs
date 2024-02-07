@@ -238,7 +238,7 @@ public class Myh264Player : MonoBehaviour
             {
                 client.Close();
             }
-            Debug.Log("Network receiver thread stopped");
+            Debug.LogWarning("Network receiver thread stopped");
         }
     }
 
@@ -285,7 +285,7 @@ public class Myh264Player : MonoBehaviour
         int submitResult = h264Stream.ProcessFrame(imgData);
         if (submitResult != 0)  // Failed
         {
-            Debug.LogError("Failed to submit input to decoder");
+            Debug.LogWarning("Failed to submit input to decoder -- Probably just need more frames");
             return;
         }
 
@@ -297,16 +297,16 @@ public class Myh264Player : MonoBehaviour
         height = hostHeight; 
         //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
         
-        UpdateTextures();            
+        UpdateTextures(ref yPlaneTexture, ref uvPlaneTexture);          
 
 
         // // Check for frame size change                   
     }
 
-    void UpdateTextures()
+    void UpdateTextures(ref Texture2D yPlaneTexture, ref Texture2D uvPlaneTexture)
     {
 
-        Debug.Log("Textures being updated on main thread");
+        //Debug.Log("Textures being updated on main thread");
 
         // int ySize = width * height;
         // int uvSize = outputBuffer.Length - ySize;
@@ -315,32 +315,34 @@ public class Myh264Player : MonoBehaviour
         // byte[] uvPlane = new byte[uvSize];
 
         // System.Buffer.BlockCopy(outputBuffer, 0, yPlane, 0, ySize);
-        // System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);        
+        // System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);     
 
-        // MainThreadDispatcher.Enqueue(() =>
-        // {
+        // The textures have been updated in the decoder, now update the textures on the main thread   
 
-        //     // Save the output buffer to a file for debugging
-        //     //SaveBufferToFile(outputBuffer, "output_stream.nv12");
+        MainThreadDispatcher.Enqueue(() =>
+        {
 
-        //     //check size of texture and resize if necessary
-        //     if (yPlaneTexture.width != width || yPlaneTexture.height != height)
-        //     {
-        //         yPlaneTexture.Reinitialize(width, height);
-        //     }
-        //     if (uvPlaneTexture.width != width / 2 || uvPlaneTexture.height != height / 2)
-        //     {
-        //         uvPlaneTexture.Reinitialize(width / 2, height / 2);
-        //     }
+            // Save the output buffer to a file for debugging
+            //SaveBufferToFile(outputBuffer, "output_stream.nv12");
+
+            // //check size of texture and resize if necessary
+            // if (yPlaneTexture.width != width || yPlaneTexture.height != height)
+            // {
+            //     yPlaneTexture.Reinitialize(width, height);
+            // }
+            // if (uvPlaneTexture.width != width / 2 || uvPlaneTexture.height != height / 2)
+            // {
+            //     uvPlaneTexture.Reinitialize(width / 2, height / 2);
+            // }
             
-        //     yPlaneTexture.LoadRawTextureData(yPlane);
-        //     yPlaneTexture.Apply();
+            // // yPlaneTexture.LoadRawTextureData(yPlane);
+            // yPlaneTexture.Apply();
 
-        //     uvPlaneTexture.LoadRawTextureData(uvPlane);
-        //     uvPlaneTexture.Apply();
+            // // uvPlaneTexture.LoadRawTextureData(uvPlane);
+            // uvPlaneTexture.Apply();
 
-        //     //Debug.Log("Textures updated on main thread");
-        // });        
+            Debug.Log("Textures updated on main thread");
+        });        
     }
     void SaveBufferToFile(byte[] buffer, string fileName)
     {
