@@ -45,6 +45,7 @@ public class h264Stream
     private Texture2D yPlaneTexture;
     private Texture2D uvPlaneTexture;
 
+
     public int Initialize(int width, int height)
     {
         m_width = width;
@@ -54,6 +55,7 @@ public class h264Stream
         try
         {
             int hr = InitializeDecoder(width, height);        
+
         }
         catch (Exception ex)
         {
@@ -112,14 +114,42 @@ public class h264Stream
 
         if (getOutputResult)
         {
-            int ySize = m_width * m_height;
-            int uvSize = outputData.Length - ySize;
 
-            byte[] yPlane = new byte[ySize];
-            byte[] uvPlane = new byte[uvSize];
+            // // update width and height if necessary
+            // if (m_width != GetFrameWidth() || m_height != GetFrameHeight())
+            // {
+            //     SetWidthAndHeight(GetFrameWidth(), GetFrameHeight());
+            // }                
 
-            System.Buffer.BlockCopy(outputData, 0, yPlane, 0, ySize);
-            System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);               
+            // int ySize = m_width * m_height;
+            // int uvSize = outputData.Length - ySize;
+
+            // byte[] yPlane = new byte[ySize];
+            // byte[] uvPlane = new byte[uvSize];
+
+            // System.Buffer.BlockCopy(outputData, 0, yPlane, 0, ySize);
+            // System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);  
+
+            // // Update the textures on the main thread
+            // MainThreadDispatcher.Enqueue(() =>
+            // {
+            //     //check size of texture and resize if necessary
+            //     if (yPlaneTexture.width != m_width || yPlaneTexture.height != m_height)
+            //     {
+            //         yPlaneTexture.Reinitialize(m_width, m_height);
+            //     }
+            //     if (uvPlaneTexture.width != m_width / 2 || uvPlaneTexture.height != m_height / 2)
+            //     {
+            //         uvPlaneTexture.Reinitialize(m_width / 2, m_height / 2);
+            //     }
+
+            //     yPlaneTexture.LoadRawTextureData(yPlane);
+            //     yPlaneTexture.Apply();
+
+            //     uvPlaneTexture.LoadRawTextureData(uvPlane);
+            //     uvPlaneTexture.Apply();
+            // });             
+            Debug.Log("Got output from decoder");
         }
         else
         {

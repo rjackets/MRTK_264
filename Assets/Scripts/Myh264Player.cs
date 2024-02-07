@@ -256,15 +256,17 @@ public class Myh264Player : MonoBehaviour
 
         // Check if a stream with this id exists
         // if not, then create, initialize with width and height and add to the list
+
          if (!h264Streams.ContainsKey(id))
          {
             h264Stream stream = new h264Stream();
-            // Initialize the decoder with the width and height on the mainthread (as it involves creating textures)
+
+            // Initialize the decoder with the width and height on the mainthread (as it involves creating textures)            
             MainThreadDispatcher.Enqueue(() =>
-            {
+            {                
+                // Get the main thread dispatcher
                 stream.Initialize(hostWidth, hostHeight);
             });
-
 
             Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);
             AddStream(id, stream);  // If successful, add the stream to the list
@@ -285,65 +287,17 @@ public class Myh264Player : MonoBehaviour
         int submitResult = h264Stream.ProcessFrame(imgData);
         if (submitResult != 0)  // Failed
         {
-            Debug.LogWarning("Failed to submit input to decoder -- Probably just need more frames");
+            Debug.LogWarning("Failed to get output from the decoder -- Probably just need more frames");
             return;
         }
-
-        // Now get the textures from the decoder
-        h264Stream.GetYPlaneTexture(ref yPlaneTexture);
-        h264Stream.GetUVPlaneTexture(ref uvPlaneTexture);
-
+        
         width = hostWidth;
         height = hostHeight; 
         //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
-        
-        UpdateTextures(ref yPlaneTexture, ref uvPlaneTexture);          
-
-
-        // // Check for frame size change                   
+              
     }
 
-    void UpdateTextures(ref Texture2D yPlaneTexture, ref Texture2D uvPlaneTexture)
-    {
-
-        //Debug.Log("Textures being updated on main thread");
-
-        // int ySize = width * height;
-        // int uvSize = outputBuffer.Length - ySize;
-
-        // byte[] yPlane = new byte[ySize];
-        // byte[] uvPlane = new byte[uvSize];
-
-        // System.Buffer.BlockCopy(outputBuffer, 0, yPlane, 0, ySize);
-        // System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);     
-
-        // The textures have been updated in the decoder, now update the textures on the main thread   
-
-        MainThreadDispatcher.Enqueue(() =>
-        {
-
-            // Save the output buffer to a file for debugging
-            //SaveBufferToFile(outputBuffer, "output_stream.nv12");
-
-            // //check size of texture and resize if necessary
-            // if (yPlaneTexture.width != width || yPlaneTexture.height != height)
-            // {
-            //     yPlaneTexture.Reinitialize(width, height);
-            // }
-            // if (uvPlaneTexture.width != width / 2 || uvPlaneTexture.height != height / 2)
-            // {
-            //     uvPlaneTexture.Reinitialize(width / 2, height / 2);
-            // }
-            
-            // // yPlaneTexture.LoadRawTextureData(yPlane);
-            // yPlaneTexture.Apply();
-
-            // // uvPlaneTexture.LoadRawTextureData(uvPlane);
-            // uvPlaneTexture.Apply();
-
-            Debug.Log("Textures updated on main thread");
-        });        
-    }
+    
     void SaveBufferToFile(byte[] buffer, string fileName)
     {
         string filePath = Path.Combine(Application.persistentDataPath, fileName);
