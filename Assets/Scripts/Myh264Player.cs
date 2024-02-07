@@ -65,12 +65,6 @@ public class Myh264Player : MonoBehaviour
             stream = null;
         }
 
-        // Cycle through the streams and release them
-        foreach (KeyValuePair<int, h264Stream> entry in h264Streams)
-        {
-            entry.Value.Release();
-        }
-
         // Then close the TCP client
         if (client != null)
         {

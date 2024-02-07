@@ -70,11 +70,13 @@ public class h264Stream : MonoBehaviour
 
     void OnDestroy()
     {
+        IsInitialized = false;
+
         // Delete textures
         yPlaneTexture = null;
         uvPlaneTexture = null;
 
-        ReleaseDecoder();
+        ReleaseDecoder();        
     }
 
     public int Initialize(int width, int height)
@@ -100,17 +102,6 @@ public class h264Stream : MonoBehaviour
 
         return 0;
     }    
-
-    public void Release()
-    {
-        // Release the textures
-        yPlaneTexture = null;
-        uvPlaneTexture = null;        
-
-        ReleaseDecoder();
-
-        IsInitialized = false;
-    }
 
     public int GetWidth()
     {
