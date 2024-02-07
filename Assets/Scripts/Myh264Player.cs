@@ -23,20 +23,6 @@ public class Myh264Player : MonoBehaviour
     [DllImport(DllName)]
     public extern static int InitializeDecoder(int width, int height);
 
-    [DllImport(DllName)]
-    public extern static int SubmitInputToDecoder(byte[] pInData, int dwInSize);
-
-    [DllImport(DllName)]
-    public extern static bool GetOutputFromDecoder(byte[] pOutData, int dwOutSize);
-
-    [DllImport(DllName)]
-    public extern static int GetFrameWidth();
-
-    [DllImport(DllName)]
-    public extern static int GetFrameHeight();
-
-    [DllImport(DllName)]
-    public extern static void ReleaseDecoder();
 
     // Network constants
     private const byte MSG_TYPE_IMAGE = 0;
@@ -53,11 +39,6 @@ public class Myh264Player : MonoBehaviour
 
     public int width = 640;
     public int height = 480;
-    public string h264FileName;
-    private List<int> nalUnitPositions;
-    private byte[] h264Data;
-    private Texture2D yPlaneTexture;
-    private Texture2D uvPlaneTexture;
 
     private GameObject videoQuad;
 
@@ -80,6 +61,8 @@ public class Myh264Player : MonoBehaviour
         // Print out if DLL load was successful
         try
         {
+            // For some reason the decoder needs to be initialized here, even though we are not
+            // using it and it is encapsulated into the h264Stream class
             int hr = InitializeDecoder(width, height);
             debugLog.Log("DLL load successful!");
         }
