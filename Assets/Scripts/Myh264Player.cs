@@ -197,6 +197,7 @@ public class Myh264Player : MonoBehaviour
         }             
 
         // Get a pointer to the stream
+        // Note !! Bad code here, we are using the object type as the name!! CAREFUL!
         h264Stream h264Stream = h264Streams[id];                
 
         // Get the image data from the message
