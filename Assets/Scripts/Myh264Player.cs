@@ -140,11 +140,6 @@ public class Myh264Player : MonoBehaviour
         }
     }
 
-    private void AddStream(int id, h264Stream stream)
-    {
-        h264Streams.Add(id, stream);
-    }
-
     void NetworkReceiverThread()
     {
         try
@@ -259,33 +254,9 @@ public class Myh264Player : MonoBehaviour
 
          if (!h264Streams.ContainsKey(id))
          {
-            h264Stream stream = new h264Stream();
+            InitializeAndAddStream(id, hostWidth, hostHeight);
 
-            // Initialize the decoder with the width and height on the mainthread (as it involves creating textures)            
-            MainThreadDispatcher.Enqueue(() =>
-            {                
-                // Get the main thread dispatcher
-                stream.Initialize(hostWidth, hostHeight);
-
-                // Set the textures for the quad based on the ones in stream
-                Texture2D yPlaneTexture = null;
-                Texture2D uvPlaneTexture = null;
-                stream.GetTextures(ref yPlaneTexture, ref uvPlaneTexture);
-
-                // Now we have pointers to the textures, set them to the quad
-
-                Renderer renderer = videoQuad.GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    renderer.material.SetTexture("_YTex", yPlaneTexture);
-                    renderer.material.SetTexture("_UVTex", uvPlaneTexture);
-                }
-
-            });
-
-            Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);
-            AddStream(id, stream);  // If successful, add the stream to the list            
-
+            Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);  
         }        
 
         // Get a pointer to the stream
@@ -308,12 +279,40 @@ public class Myh264Player : MonoBehaviour
         }
         
         width = hostWidth;
-        height = hostHeight; 
+        height = hostHeight;
         //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
-              
+
     }
 
-    
+    private void InitializeAndAddStream(int id, int width, int height)
+    {
+        h264Stream stream = new h264Stream();
+
+        MainThreadDispatcher.Enqueue(() =>
+        {
+            // Get the main thread dispatcher
+            stream.Initialize(width, height);
+
+            // Set the textures for the quad based on the ones in stream
+            Texture2D yPlaneTexture = null;
+            Texture2D uvPlaneTexture = null;
+            stream.GetTextures(ref yPlaneTexture, ref uvPlaneTexture);
+
+            // Now we have pointers to the textures, set them to the quad
+
+            Renderer renderer = videoQuad.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material.SetTexture("_YTex", yPlaneTexture);
+                renderer.material.SetTexture("_UVTex", uvPlaneTexture);
+            }
+
+        });
+
+        h264Streams.Add(id, stream);
+    }
+
+
     void SaveBufferToFile(byte[] buffer, string fileName)
     {
         string filePath = Path.Combine(Application.persistentDataPath, fileName);
