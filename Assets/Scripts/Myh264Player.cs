@@ -12,18 +12,6 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class Myh264Player : MonoBehaviour
 {
 
-    
-    #if UNITY_EDITOR
-    private const string DllName = "MFh264Decoder.dll";
-    #else
-    private const string DllName = "MFh264Decoder_ARM64.dll";
-    #endif
-
-
-    [DllImport(DllName)]
-    public extern static int InitializeDecoder(int width, int height);
-
-
     // Network constants
     private const byte MSG_TYPE_IMAGE = 0;
     private const byte MSG_TYPE_OBJECT = 1;
@@ -55,21 +43,6 @@ public class Myh264Player : MonoBehaviour
         receiverThread.Start();
 
         debugLog.Log("Network receiver thread started");
-
-        // Print out name of the dll
-        debugLog.Log("Using DLL: " + DllName);
-        // Print out if DLL load was successful
-        try
-        {
-            // For some reason the decoder needs to be initialized here, even though we are not
-            // using it and it is encapsulated into the h264Stream class
-           // int hr = InitializeDecoder(width, height);
-            debugLog.Log("DLL load successful!");
-        }
-        catch (Exception ex)
-        {
-            debugLog.Log("DLL load failed: " + ex.Message);
-        }
 
         // Find the GameObject with the Quad and set the texture
         // Also save the GameObject in a variable so we can use it later

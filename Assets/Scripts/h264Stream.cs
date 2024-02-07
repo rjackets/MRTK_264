@@ -2,6 +2,16 @@
 // as well as the stream parameters (eg. width, height, textures, etc.)
 // Each source of h264 stream should have an instance of this class
 
+// TODO:
+//   - The c++ getoutput can return multiple outputs in one frame
+//   - This is currently only doing frame in and frame out
+//   - this can lead to bloat if frames are comming in faster than the framerate
+//   - because the texture update is queued on the main thread
+//   - instead should have a queue of frames and update the texture at the framerate
+//   - this means that some frames will be dropped if they come in too fast
+//  - but they still need to be processed
+
+
 
 using System.Collections;
 using System.Collections.Generic;
@@ -172,6 +182,11 @@ public class h264Stream : MonoBehaviour
 
             System.Buffer.BlockCopy(m_outputData, 0, m_yPlane, 0, ySize);
             System.Buffer.BlockCopy(m_outputData, ySize, m_uvPlane, 0, uvSize);  
+
+
+            // TODO: Process all frames, but only output the most recent. 
+            // The network controller should dump frames into the decoder as fast as possible
+
 
             // // Update the textures on the main thread
             MainThreadDispatcher.Enqueue(() =>
