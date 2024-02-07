@@ -51,6 +51,8 @@ public class h264Stream : MonoBehaviour
     byte[] m_yPlane;
     byte[] m_uvPlane;
 
+    public bool IsInitialized { get; private set; } = false;
+
     void Start()
     {
 
@@ -84,6 +86,8 @@ public class h264Stream : MonoBehaviour
         yPlaneTexture = new Texture2D(width, height, TextureFormat.R8, false);
         uvPlaneTexture = new Texture2D(width / 2, height / 2, TextureFormat.RG16, false); // Assuming width and height are even -- UV is half the size of Y
 
+        IsInitialized = true;
+
         return 0;
     }    
 
@@ -91,9 +95,11 @@ public class h264Stream : MonoBehaviour
     {
         // Release the textures
         yPlaneTexture = null;
-        uvPlaneTexture = null;
+        uvPlaneTexture = null;        
 
         ReleaseDecoder();
+
+        IsInitialized = false;
     }
 
     public int GetWidth()

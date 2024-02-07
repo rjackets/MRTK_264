@@ -175,6 +175,7 @@ public class Myh264Player : MonoBehaviour
                 {
                     case MSG_TYPE_IMAGE:
                         DecodeAndProcessFrame(dataPacket, msgSize);
+                        // Consider switching this so that the Decode method is called on the main thread
                         break;
                     case MSG_TYPE_OBJECT:
                         Debug.Log("Received object update.");
@@ -225,9 +226,8 @@ public class Myh264Player : MonoBehaviour
             // now need to return and not process the frame
             // otherwise could get a null reference if main thread has not
             // had a chance to create the stream!!
-
-            return; 
-        }        
+            return;
+        }             
 
         // Get a pointer to the stream
         h264Stream h264Stream = h264Streams[id];                
