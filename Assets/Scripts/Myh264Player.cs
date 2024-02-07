@@ -78,25 +78,16 @@ public class Myh264Player : MonoBehaviour
         // Print out if DLL load was successful
         try
         {
-            bool isLoadSuccessful = InitializeDecoder(1000, 1000) == 0;
-            debugLog.Log("DLL load successful: " + isLoadSuccessful);
+            int hr = InitializeDecoder(width, height);
+            debugLog.Log("DLL load successful!");
         }
         catch (Exception ex)
         {
             debugLog.Log("DLL load failed: " + ex.Message);
         }
 
-        // // Initialize the decoder
-        // int hr = InitializeDecoder(width, height);
-        // if (hr != 0)
-        // {
-        //     Debug.LogError("Failed to initialize decoder");
-        //     debugLog.Log("Failed to initialize decoder");
-        //     return;
-        // }
-
-        // Debug.Log("Decoder initialized successfully");
-        // debugLog.Log("Decoder initialized successfully");
+        Debug.Log("Decoder initialized successfully");
+        debugLog.Log("Decoder initialized successfully");
 
         // Initialize the textures
         yPlaneTexture = new Texture2D(width, height, TextureFormat.R8, false);
@@ -244,10 +235,10 @@ public class Myh264Player : MonoBehaviour
         int offset = 1;
 
         // return unless id = 0     -- used for now to test the decoder and avoid conflicting with multiple streams
-        if (id != 0)
-        {            
-            return;
-        }
+        // if (id != 1)
+        // {            
+        //     return;
+        // }
 
         ushort hostWidth = ParseUShortFromByteArray(messageData, offset);
         offset += sizeof(ushort);
@@ -257,13 +248,10 @@ public class Myh264Player : MonoBehaviour
 
         // Get the image data from the message
         byte[] imgData = new byte[messageSize - offset];
-        Array.Copy(messageData, offset, imgData, 0, messageSize - offset);
-
-        // Print the image size, aspect ratio and id
-        //Debug.Log($"Received image {id} with size {width}x{height}");
+        Array.Copy(messageData, offset, imgData, 0, messageSize - offset);       
         
         int imageSize = messageSize - offset;
-
+        
         // Now do the decoding
 
         // // Submit H.264 data to the decoder
@@ -274,13 +262,14 @@ public class Myh264Player : MonoBehaviour
             return;
         }
 
-        // Set new width and height if applicable
-        width = hostWidth;
-        height = hostHeight; 
-
         // Get output from the decoder
         byte[] outputBuffer = new byte[width * height * 3 / 2];
-        bool gotOutput = GetOutputFromDecoder(outputBuffer, outputBuffer.Length);       
+        bool gotOutput = GetOutputFromDecoder(outputBuffer, outputBuffer.Length);      
+
+        width = hostWidth;
+        height = hostHeight; 
+        //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
+        
 
         if (gotOutput)
         {            
@@ -292,21 +281,6 @@ public class Myh264Player : MonoBehaviour
         }
 
         // // Check for frame size change                   
-
-        if (hostWidth != width || hostHeight != height)
-        {
-
-            // Reinitialize textures with new dimensions
-            // yPlaneTexture.Reinitialize(width, height);
-            // uvPlaneTexture.Reinitialize(width / 2, height / 2);
-
-            // // Update quad aspect ratio if applicable
-            // // May need to do this in the main thread with dispatcher
-            // float aspectRatio = (float)width / (float)height;
-            // Vector3 currentScale = videoQuad.transform.localScale;
-            // videoQuad.transform.localScale = new Vector3(currentScale.x, currentScale.x / aspectRatio, 1.0f);
-        }
-
     }
 
     void UpdateTextures(byte[] outputBuffer)

@@ -421,7 +421,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   width: 1920
-  height: 800
+  height: 1080
   h264FileName: 
   debugLog: {fileID: 1437167473}
 --- !u!114 &1128268447
@@ -531,7 +531,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1437167467
 MonoBehaviour:
   m_ObjectHideFlags: 0
