@@ -220,12 +220,14 @@ public class Myh264Player : MonoBehaviour
 
          if (!h264Streams.ContainsKey(id))
          {
-            InitializeAndAddStream(id, hostWidth, hostHeight);
+            InitializeAndAddStream(id, hostWidth, hostHeight);            
 
-            Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);  
+            // now need to return and not process the frame
+            // otherwise could get a null reference if main thread has not
+            // had a chance to create the stream!!
+
+            return; 
         }        
-
-        return;
 
         // Get a pointer to the stream
         h264Stream h264Stream = h264Streams[id];                
@@ -256,6 +258,14 @@ public class Myh264Player : MonoBehaviour
     {
         MainThreadDispatcher.Enqueue(() =>
         {          
+
+            // Even inside the enqueue, it's good to check again in case multiple calls were queued before the first had a chance to execute
+            if (h264Streams.ContainsKey(id))
+            {
+                Debug.Log($"Stream with id {id} was added before this call could execute. Skipping.");
+                return; // Skip if another task already created the stream
+            }
+            
             // Get the main thread dispatcher
             // Create a GameObject based on the id and add the h264Stream script to it
             GameObject go = new GameObject("h264Stream_" + id);
