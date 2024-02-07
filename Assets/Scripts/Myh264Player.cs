@@ -88,26 +88,9 @@ public class Myh264Player : MonoBehaviour
             debugLog.Log("DLL load failed: " + ex.Message);
         }
 
-        Debug.Log("Decoder initialized successfully");
-        debugLog.Log("Decoder initialized successfully");
-
-        // Initialize the textures
-        yPlaneTexture = new Texture2D(width, height, TextureFormat.R8, false);
-        uvPlaneTexture = new Texture2D(width / 2, height / 2, TextureFormat.RG16, false); // Assuming width and height are even -- UV is half the size of Y
-
-        debugLog.Log("Textures initialized successfully");
-
         // Find the GameObject with the Quad and set the texture
         // Also save the GameObject in a variable so we can use it later
         videoQuad = GameObject.Find("Quad");
-        Renderer renderer = videoQuad.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.material.SetTexture("_YTex", yPlaneTexture);
-            renderer.material.SetTexture("_UVTex", uvPlaneTexture);
-        }
-
-        debugLog.Log("Textures set to quad successfully");
     }
 
     private void OnDestroy()
