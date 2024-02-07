@@ -215,9 +215,7 @@ public class Myh264Player : MonoBehaviour
             return;
         }
         
-        width = hostWidth;
-        height = hostHeight;
-        //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
+        
 
     }
 
