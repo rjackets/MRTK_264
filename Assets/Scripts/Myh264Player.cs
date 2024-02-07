@@ -51,8 +51,8 @@ public class Myh264Player : MonoBehaviour
     private string ServerIpAddress = "192.168.1.62"; // Replace with your server IP
     private bool continueReceiving = true;
 
-    public int width = 1920;
-    public int height = 800;
+    public int width = 640;
+    public int height = 480;
     public string h264FileName;
     private List<int> nalUnitPositions;
     private byte[] h264Data;
@@ -254,7 +254,7 @@ public class Myh264Player : MonoBehaviour
         // Now do the decoding
 
         // // Submit H.264 data to the decoder
-        int submitResult = h264Stream.ProcessFrame(imgData);
+        int submitResult = h264Stream.ProcessFrame(imgData, hostWidth, hostHeight);
         if (submitResult != 0)  // Failed
         {
             Debug.LogWarning("Failed to get output from the decoder -- Probably just need more frames");

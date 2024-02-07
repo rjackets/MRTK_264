@@ -42,8 +42,14 @@ public class h264Stream
 
     private int m_width;
     private int m_height;
+
+    // For textures and image output
     private Texture2D yPlaneTexture;
-    private Texture2D uvPlaneTexture;
+    private Texture2D uvPlaneTexture;    
+    private byte[] m_outputData;
+    
+    byte[] m_yPlane;
+    byte[] m_uvPlane;
 
 
     public int Initialize(int width, int height)
@@ -70,6 +76,10 @@ public class h264Stream
 
     public void Release()
     {
+        // Release the textures
+        yPlaneTexture = null;
+        uvPlaneTexture = null;
+
         ReleaseDecoder();
     }
 
@@ -105,8 +115,10 @@ public class h264Stream
         m_height = height;
     }
 
-    public int ProcessFrame(byte[] inData)
+    public int ProcessFrame(byte[] inData, int width, int height)
     {
+        // The caller needs to privde the width and height as it may not be the same as the internal buffer
+
         int submitResult = SubmitInputToDecoder(inData, inData.Length);
         if (submitResult != 0)  // Failed
         {
@@ -115,26 +127,32 @@ public class h264Stream
 
         // Process output
         // This may not return anything on the first few frames
-        byte[] outputData = new byte[m_width* m_height * 3 / 2];  // NV12 format
-        bool getOutputResult = GetOutputFromDecoder(outputData, outputData.Length);
+        
+        // Make sure that m_outputData is at least as big as width * height * 3 / 2
+        if (m_outputData == null || m_outputData.Length < width * height * 3 / 2)
+        {
+            m_outputData = new byte[width * height * 3 / 2];
+        }
+        // Make sure that yPlane and uvPlane are at least as big as we need
+        if (m_yPlane == null || m_yPlane.Length < width * height)
+        {
+            m_yPlane = new byte[width * height];
+        }
+        if (m_uvPlane == null || m_uvPlane.Length < width * height / 2)         // half the size of Y
+        {
+            m_uvPlane = new byte[width * height / 2];
+        }
+
+        bool getOutputResult = GetOutputFromDecoder(m_outputData, m_outputData.Length);
 
         if (getOutputResult)
         {
+            // Get Y and UV size
+            int ySize = width * height;
+            int uvSize = width * height / 2;
 
-            // update width and height if necessary
-            if (m_width != GetFrameWidth() || m_height != GetFrameHeight())
-            {
-                SetWidthAndHeight(GetFrameWidth(), GetFrameHeight());
-            }                
-
-            int ySize = m_width * m_height;
-            int uvSize = outputData.Length - ySize;
-
-            byte[] yPlane = new byte[ySize];
-            byte[] uvPlane = new byte[uvSize];
-
-            System.Buffer.BlockCopy(outputData, 0, yPlane, 0, ySize);
-            System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);  
+            System.Buffer.BlockCopy(m_outputData, 0, m_yPlane, 0, ySize);
+            System.Buffer.BlockCopy(m_outputData, ySize, m_uvPlane, 0, uvSize);  
 
             // // Update the textures on the main thread
             MainThreadDispatcher.Enqueue(() =>
@@ -149,16 +167,16 @@ public class h264Stream
                     uvPlaneTexture.Reinitialize(m_width / 2, m_height / 2);
                 }
 
-                yPlaneTexture.LoadRawTextureData(yPlane);
+                yPlaneTexture.LoadRawTextureData(m_yPlane);
                 yPlaneTexture.Apply();
 
-                uvPlaneTexture.LoadRawTextureData(uvPlane);
+                uvPlaneTexture.LoadRawTextureData(m_uvPlane);
                 uvPlaneTexture.Apply();            
             });             
         }
         else
         {
-            Debug.LogError("Failed to get output from decoder");
+            // Failed to get output - handle error in calling function            
             return -1;
         }
 
