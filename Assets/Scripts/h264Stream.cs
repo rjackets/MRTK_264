@@ -115,6 +115,15 @@ public class h264Stream : MonoBehaviour
 
             Debug.Log("Got output from decoder");            
 
+            int ySize = m_width * m_height;
+            int uvSize = outputData.Length - ySize;
+
+            byte[] yPlane = new byte[ySize];
+            byte[] uvPlane = new byte[uvSize];
+
+            System.Buffer.BlockCopy(outputData, 0, yPlane, 0, ySize);
+            System.Buffer.BlockCopy(outputData, ySize, uvPlane, 0, uvSize);     
+
             // Convert the output data to textures
             // yPlaneTexture.LoadRawTextureData(outputData);
             // yPlaneTexture.Apply();

@@ -75,21 +75,6 @@ public class Myh264Player : MonoBehaviour
 
         debugLog.Log("Network receiver thread started");
 
-        // // Add a stream the the stream list
-        h264Stream stream = new h264Stream();
-        // Initialize the stream
-        int result = stream.Initialize(width, height);
-        // if success then add to the list
-        if (result == 0)
-        {
-            Debug.Log("Stream initialized successfully");
-            AddStream(0, stream);           // Start at index 0 so that it matches what is coming from host
-        }
-        else
-        {
-             Debug.LogError("Failed to initialize stream OBJECT");
-        }
-
         // Print out name of the dll
         debugLog.Log("Using DLL: " + DllName);
         // Print out if DLL load was successful
@@ -253,26 +238,40 @@ public class Myh264Player : MonoBehaviour
             {
                 client.Close();
             }
+            Debug.Log("Network receiver thread stopped");
         }
     }
 
     void DecodeAndProcessFrame(byte[] messageData, int messageSize)
     {
-        // Network decode
+        // Network decode     
         byte id = messageData[0];
         int offset = 1;
-
-        // return unless id = 0     -- used for now to test the decoder and avoid conflicting with multiple streams
-        // if (id != 1)
-        // {            
-        //     return;
-        // }
 
         ushort hostWidth = ParseUShortFromByteArray(messageData, offset);
         offset += sizeof(ushort);
 
         ushort hostHeight = ParseUShortFromByteArray(messageData, offset);
         offset += sizeof(ushort);
+
+        // Check if a stream with this id exists
+        // if not, then create, initialize with width and height and add to the list
+         if (!h264Streams.ContainsKey(id))
+         {
+            h264Stream stream = new h264Stream();
+            // Initialize the decoder with the width and height on the mainthread (as it involves creating textures)
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                stream.Initialize(hostWidth, hostHeight);
+            });
+
+
+            Debug.Log("Stream initialized with id: " + id + ", resolution: " + hostWidth + "x" + hostHeight);
+            AddStream(id, stream);  // If successful, add the stream to the list
+        }        
+
+        // Get a pointer to the stream
+        h264Stream h264Stream = h264Streams[id];                
 
         // Get the image data from the message
         byte[] imgData = new byte[messageSize - offset];
@@ -283,69 +282,65 @@ public class Myh264Player : MonoBehaviour
         // Now do the decoding
 
         // // Submit H.264 data to the decoder
-        int submitResult = SubmitInputToDecoder(imgData, imageSize);
-        if (submitResult != 0)
+        int submitResult = h264Stream.ProcessFrame(imgData);
+        if (submitResult != 0)  // Failed
         {
-            Debug.LogError("Failed to submit frame data to decoder");
+            Debug.LogError("Failed to submit input to decoder");
             return;
         }
 
-        // Get output from the decoder
-        byte[] outputBuffer = new byte[width * height * 3 / 2];
-        bool gotOutput = GetOutputFromDecoder(outputBuffer, outputBuffer.Length);      
+        // Now get the textures from the decoder
+        h264Stream.GetYPlaneTexture(ref yPlaneTexture);
+        h264Stream.GetUVPlaneTexture(ref uvPlaneTexture);
 
         width = hostWidth;
         height = hostHeight; 
         //Debug.Log("Frame width and height from decoder: " + width + "x" + height);
         
+        UpdateTextures();            
 
-        if (gotOutput)
-        {            
-            UpdateTextures(outputBuffer);            
-        }
-        else
-        {
-            Debug.LogError("Failed to get output for NAL unit");
-        }
 
         // // Check for frame size change                   
     }
 
-    void UpdateTextures(byte[] outputBuffer)
+    void UpdateTextures()
     {
-        int ySize = width * height;
-        int uvSize = outputBuffer.Length - ySize;
 
-        byte[] yPlane = new byte[ySize];
-        byte[] uvPlane = new byte[uvSize];
+        Debug.Log("Textures being updated on main thread");
 
-        System.Buffer.BlockCopy(outputBuffer, 0, yPlane, 0, ySize);
-        System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);        
+        // int ySize = width * height;
+        // int uvSize = outputBuffer.Length - ySize;
 
-        MainThreadDispatcher.Enqueue(() =>
-        {
+        // byte[] yPlane = new byte[ySize];
+        // byte[] uvPlane = new byte[uvSize];
 
-            // Save the output buffer to a file for debugging
-            //SaveBufferToFile(outputBuffer, "output_stream.nv12");
+        // System.Buffer.BlockCopy(outputBuffer, 0, yPlane, 0, ySize);
+        // System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);        
 
-            //check size of texture and resize if necessary
-            if (yPlaneTexture.width != width || yPlaneTexture.height != height)
-            {
-                yPlaneTexture.Reinitialize(width, height);
-            }
-            if (uvPlaneTexture.width != width / 2 || uvPlaneTexture.height != height / 2)
-            {
-                uvPlaneTexture.Reinitialize(width / 2, height / 2);
-            }
+        // MainThreadDispatcher.Enqueue(() =>
+        // {
+
+        //     // Save the output buffer to a file for debugging
+        //     //SaveBufferToFile(outputBuffer, "output_stream.nv12");
+
+        //     //check size of texture and resize if necessary
+        //     if (yPlaneTexture.width != width || yPlaneTexture.height != height)
+        //     {
+        //         yPlaneTexture.Reinitialize(width, height);
+        //     }
+        //     if (uvPlaneTexture.width != width / 2 || uvPlaneTexture.height != height / 2)
+        //     {
+        //         uvPlaneTexture.Reinitialize(width / 2, height / 2);
+        //     }
             
-            yPlaneTexture.LoadRawTextureData(yPlane);
-            yPlaneTexture.Apply();
+        //     yPlaneTexture.LoadRawTextureData(yPlane);
+        //     yPlaneTexture.Apply();
 
-            uvPlaneTexture.LoadRawTextureData(uvPlane);
-            uvPlaneTexture.Apply();
+        //     uvPlaneTexture.LoadRawTextureData(uvPlane);
+        //     uvPlaneTexture.Apply();
 
-            //Debug.Log("Textures updated on main thread");
-        });        
+        //     //Debug.Log("Textures updated on main thread");
+        // });        
     }
     void SaveBufferToFile(byte[] buffer, string fileName)
     {
@@ -360,120 +355,6 @@ public class Myh264Player : MonoBehaviour
             Debug.LogError("Error saving file: " + ex.Message);
         }
     }
-
-
-    // /// /////////////////////////
-
-
-    // IEnumerator ProcessNalUnits()
-    // {
-    //     for (int i = 0; i < nalUnitPositions.Count; i++)
-    //     {
-    //         ProcessNalUnit(i);
-    //         yield return null; // Wait for the next frame
-    //     }
-
-    //     ReleaseDecoder();
-    //     Debug.Log("Decoder released");
-    // }
-
-    // void ProcessNalUnit(int index)
-    // {
-
-    //     // Extract Y plane data
-    //     Stopwatch stopwatch = Stopwatch.StartNew(); // Start the timer
-
-    //     int start = nalUnitPositions[index];
-    //     int end = (index < nalUnitPositions.Count - 1) ? nalUnitPositions[index + 1] : h264Data.Length;
-    //     int nalUnitSize = end - start;
-
-    //     byte[] nalUnitData = new byte[nalUnitSize];
-
-    //     // Manually copy data from h264Data to nalUnitData
-    //     for (int i = 0; i < nalUnitSize; i++)
-    //     {
-    //         nalUnitData[i] = h264Data[start + i];
-    //     }
-
-    //     int submitResult = SubmitInputToDecoder(nalUnitData, nalUnitSize);
-    //     if (submitResult != 0)
-    //     {
-    //         Debug.LogError($"Failed to submit NAL unit {index + 1}");
-    //         return;
-    //     }
-
-    //     // Check for frame size change
-    //     int currentFrameWidth = GetFrameWidth();
-    //     int currentFrameHeight = GetFrameHeight();
-
-    //     if (currentFrameWidth != width || currentFrameHeight != height)
-    //     {
-    //         Debug.Log($"Frame size changed to {currentFrameWidth}x{currentFrameHeight}");
-    //         width = currentFrameWidth;
-    //         height = currentFrameHeight;
-
-    //         // Reinitialize textures with new dimensions
-    //         yPlaneTexture.Reinitialize(width, height);
-    //         uvPlaneTexture.Reinitialize(width / 2, height / 2);
-
-    //         // Update quad aspect ratio if applicable
-    //         float aspectRatio = (float)width / (float)height;
-    //         Vector3 currentScale = videoQuad.transform.localScale;
-    //         videoQuad.transform.localScale = new Vector3(currentScale.x, currentScale.x / aspectRatio, 1.0f);
-    //     }
-
-
-    //     byte[] outputBuffer = new byte[GetFrameWidth() * GetFrameHeight() * 3 / 2];
-    //     bool gotOutput = GetOutputFromDecoder(outputBuffer, outputBuffer.Length);
-
-    //     if (gotOutput)
-    //     {
-    //         // Calculate the size of the Y and UV data
-    //         int ySize = width * height;
-    //         int uvSize = outputBuffer.Length - ySize;
-
-    //         // Create arrays for Y and UV data
-    //         byte[] yPlane = new byte[ySize];
-    //         byte[] uvPlane = new byte[uvSize];
-
-    //         // Copy Y data from outputBuffer to yPlane
-    //         System.Buffer.BlockCopy(outputBuffer, 0, yPlane, 0, ySize);
-
-    //         // Copy UV data from outputBuffer to uvPlane
-    //         System.Buffer.BlockCopy(outputBuffer, ySize, uvPlane, 0, uvSize);
-
-    //         // Update Y plane texture
-    //         yPlaneTexture.LoadRawTextureData(yPlane);
-    //         yPlaneTexture.Apply();
-
-    //         // Update UV plane texture
-    //         uvPlaneTexture.LoadRawTextureData(uvPlane);
-    //         uvPlaneTexture.Apply();
-
-    //     }
-    //     else
-    //     {
-    //         Debug.LogError($"Failed to get output for NAL unit {index + 1}");
-    //     }
-
-    //     stopwatch.Stop(); // Stop the timer
-    //     Debug.Log($"NAL unit {index + 1} processed in {stopwatch.ElapsedMilliseconds} ms");
-
-    // }
-
-
-    // List<int> FindNalUnits(byte[] data)
-    // {
-    //     List<int> positions = new List<int>();
-    //     for (int i = 0; i < data.Length - 4; i++)
-    //     {
-    //         if (data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x00 && data[i + 3] == 0x01)
-    //         {
-    //             positions.Add(i);
-    //         }
-    //     }
-    //     return positions;
-    // }
 
     public static ushort ParseUShortFromByteArray(byte[] data, int startIndex)
     {
