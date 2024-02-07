@@ -293,23 +293,26 @@ public class Myh264Player : MonoBehaviour
             // Get the main thread dispatcher
             stream.Initialize(width, height);
 
-            // Set the textures for the quad based on the ones in stream
-            Texture2D yPlaneTexture = null;
-            Texture2D uvPlaneTexture = null;
-            stream.GetTextures(ref yPlaneTexture, ref uvPlaneTexture);
-
-            // Now we have pointers to the textures, set them to the quad
-
-            Renderer renderer = videoQuad.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                renderer.material.SetTexture("_YTex", yPlaneTexture);
-                renderer.material.SetTexture("_UVTex", uvPlaneTexture);
-            }
+            // Assign the textures to the quad
+            AssignTexturesToQuad(stream);
 
         });
 
         h264Streams.Add(id, stream);
+    }
+
+    void AssignTexturesToQuad(h264Stream stream)
+    {
+        Texture2D yPlaneTexture = null;
+        Texture2D uvPlaneTexture = null;
+        stream.GetTextures(ref yPlaneTexture, ref uvPlaneTexture);
+
+        Renderer renderer = videoQuad.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material.SetTexture("_YTex", yPlaneTexture);
+            renderer.material.SetTexture("_UVTex", uvPlaneTexture);
+        }
     }
 
 
