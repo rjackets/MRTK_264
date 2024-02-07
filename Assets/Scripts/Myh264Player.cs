@@ -82,7 +82,8 @@ public class Myh264Player : MonoBehaviour
         // if success then add to the list
         if (result == 0)
         {
-             AddStream(0, stream);           // Start at index 0 so that it matches what is coming from host
+            Debug.Log("Stream initialized successfully");
+            AddStream(0, stream);           // Start at index 0 so that it matches what is coming from host
         }
         else
         {
@@ -138,6 +139,12 @@ public class Myh264Player : MonoBehaviour
         {
             stream.Close();
             stream = null;
+        }
+
+        // Cycle through the streams and release them
+        foreach (KeyValuePair<int, h264Stream> entry in h264Streams)
+        {
+            entry.Value.Release();
         }
 
         // Then close the TCP client
