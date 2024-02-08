@@ -32,7 +32,7 @@ public class Myh264Player : MonoBehaviour
 
     public DebugLog debugLog;   // For debug logging
 
-    private Dictionary<int, h264Stream> h264Streams = new Dictionary<int, h264Stream>();
+    public Dictionary<int, h264Stream> h264Streams = new Dictionary<int, h264Stream>();
 
     void Start()
     {
