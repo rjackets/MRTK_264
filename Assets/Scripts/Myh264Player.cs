@@ -12,6 +12,13 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class Myh264Player : MonoBehaviour
 {
 
+    #if UNITY_EDITOR
+        private const string DllName = "MFh264Decoder.dll";
+    #else
+        private const string DllName = "MFh264Decoder_ARM64.dll";
+    #endif
+
+
     // Network constants
     private const byte MSG_TYPE_IMAGE = 0;
     private const byte MSG_TYPE_OBJECT = 1;
@@ -43,6 +50,10 @@ public class Myh264Player : MonoBehaviour
         receiverThread.Start();
 
         debugLog.Log("Network receiver thread started");
+
+        // Print the file name used for the dll
+        debugLog.Log("Using dll: " + DllName);
+
 
         // Find the GameObject with the Quad and set the texture
         // Also save the GameObject in a variable so we can use it later
@@ -241,7 +252,16 @@ public class Myh264Player : MonoBehaviour
             Debug.Log("Added h264Stream script to GameObject: " + go.name);
 
             // Initialize the stream with the width and height
-            stream.Initialize(width, height);
+            int result = stream.Initialize(width, height);
+            if (result != 0)
+            {
+                debugLog.Log("FAILED to initialize h264Stream with width and height: " + width + " " + height);
+                return;
+            }
+            else
+            {
+                debugLog.Log("Initialized h264Stream with width and height: " + width + " " + height);
+            }
 
             // Add the stream to the list
             h264Streams.Add(id, stream);

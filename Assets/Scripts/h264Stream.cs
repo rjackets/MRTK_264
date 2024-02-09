@@ -32,23 +32,28 @@ public class h264Stream : MonoBehaviour
     #endif
 
 
-    [DllImport(DllName)]
-    public extern static int InitializeDecoder(int width, int height);
 
-    [DllImport(DllName)]
-    public extern static int SubmitInputToDecoder(byte[] pInData, int dwInSize);
+    // Updated P/Invoke declarations to include the decoder instance
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr CreateDecoder();
 
-    [DllImport(DllName)]
-    public extern static bool GetOutputFromDecoder(byte[] pOutData, int dwOutSize);
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void ReleaseDecoder(IntPtr decoder);
 
-    [DllImport(DllName)]
-    public extern static int GetFrameWidth();
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int InitializeDecoder(IntPtr decoder, int width, int height);
 
-    [DllImport(DllName)]
-    public extern static int GetFrameHeight();
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int SubmitInputToDecoder(IntPtr decoder, byte[] pInData, int dwInSize);
 
-    [DllImport(DllName)]
-    public extern static void ReleaseDecoder();
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern bool GetOutputFromDecoder(IntPtr decoder, byte[] pOutData, int dwOutSize);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int GetFrameWidth(IntPtr decoder);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int GetFrameHeight(IntPtr decoder);
 
     private int m_width;
     private int m_height;
@@ -63,6 +68,8 @@ public class h264Stream : MonoBehaviour
 
     public bool IsInitialized { get; private set; } = false;
 
+     private IntPtr decoderInstance = IntPtr.Zero;
+
     void Start()
     {
 
@@ -70,13 +77,17 @@ public class h264Stream : MonoBehaviour
 
     void OnDestroy()
     {
+        if (decoderInstance != IntPtr.Zero)
+        {
+            ReleaseDecoder(decoderInstance);
+            decoderInstance = IntPtr.Zero;
+        }
+        
         IsInitialized = false;
 
         // Delete textures
-        yPlaneTexture = null;
-        uvPlaneTexture = null;
-
-        ReleaseDecoder();        
+        Destroy(yPlaneTexture);
+        Destroy(uvPlaneTexture);     
     }
 
     public int Initialize(int width, int height)
@@ -84,19 +95,20 @@ public class h264Stream : MonoBehaviour
         m_width = width;
         m_height = height;
 
-        // try to init the decoder, return -1 if failed
-        try
-        {
-            int hr = InitializeDecoder(width, height);        
-
+        decoderInstance = CreateDecoder();
+        if (decoderInstance == IntPtr.Zero)
+        {            
+            return -1;
         }
-        catch (Exception ex)
+
+        int hr = InitializeDecoder(decoderInstance, width, height);
+        if (hr != 0)
         {
             return -1;
         }
 
         yPlaneTexture = new Texture2D(width, height, TextureFormat.R8, false);
-        uvPlaneTexture = new Texture2D(width / 2, height / 2, TextureFormat.RG16, false); // Assuming width and height are even -- UV is half the size of Y
+        uvPlaneTexture = new Texture2D(width / 2, height / 2, TextureFormat.RG16, false);
 
         IsInitialized = true;
 
@@ -105,12 +117,14 @@ public class h264Stream : MonoBehaviour
 
     public int GetWidth()
     {
-        return GetFrameWidth();     // Returns the width of the internal frame buffer
+        if (decoderInstance == IntPtr.Zero) return -1;
+        return GetFrameWidth(decoderInstance);
     }
 
     public int GetHeight()
     {
-        return GetFrameHeight();   // Returns the height of the internal frame buffer
+        if (decoderInstance == IntPtr.Zero) return -1;
+        return GetFrameHeight(decoderInstance);
     }
 
     public void GetYPlaneTexture(ref Texture2D yPlaneTexture)
@@ -139,9 +153,11 @@ public class h264Stream : MonoBehaviour
     {
         // The caller needs to privde the width and height as it may not be the same as the internal buffer
 
-        int submitResult = SubmitInputToDecoder(inData, inData.Length);
+        if (decoderInstance == IntPtr.Zero) return -1;
+
+        int submitResult = SubmitInputToDecoder(decoderInstance, inData, inData.Length);
         if (submitResult != 0)  // Failed
-        {
+        {            
             return -1;
         }
 
@@ -163,7 +179,7 @@ public class h264Stream : MonoBehaviour
             m_uvPlane = new byte[width * height / 2];
         }
 
-        bool getOutputResult = GetOutputFromDecoder(m_outputData, m_outputData.Length);
+        bool getOutputResult = GetOutputFromDecoder(decoderInstance, m_outputData, m_outputData.Length);
 
         if (getOutputResult)
         {
@@ -201,7 +217,7 @@ public class h264Stream : MonoBehaviour
         }
         else
         {
-            // Failed to get output - handle error in calling function            
+            // Failed to get output - handle error in calling function         
             return -1;
         }
 
